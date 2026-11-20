@@ -103,11 +103,13 @@ The frontend consumes `GET /api/bookings/{bookingId}/assessment` and triggers `P
 ```
 
 - **Never displayed to passenger:** internal source names (`LEGACY_MIRROR`), raw rule expressions, `confidence` labels, or unmasked PII.
-- **Notification contract (`notify_passenger`):** requires non-blank `policyRef` (adapter returns `422 UNVALIDATED_CONTENT` otherwise). On `201 PENDING_CONFIRMATION`, copy states *"Solicitamos tu cambio..."* and never *"confirmado"*.
+- **Notification contract (`notify_passenger`):** requires non-blank `policyRef` (adapter returns `422 UNVALIDATED_CONTENT` otherwise). On `201 PENDING_CONFIRMATION`, copy states *"We have requested your rebooking..."* and never *"confirmed"*.
 
 ---
 
 ## 6. Known Limitations & Next Steps
+
+- **Principle of Least Privilege (PoLP) — AuthN/AuthZ:** enforced internally via read/write port segregation (`EvaluateDisruption` has read-only ports; `Evidence`/`PassengerMessage.Facts` exclude PII by construction), but HTTP authentication and `bookingId` ownership checks (JWT/OAuth2 with separate `read`/`write` scopes) are out of scope for v1 and required in production.
 
 - **In-memory `PENDING_UNKNOWN` lock:** currently stored in `ConcurrentHashMap` inside `ExecuteDisruptionAction`; in production this must be persisted in a transactional store (DB/Redis with fencing) to survive restarts and horizontal scaling.
 - **Fixture adapters:** read/write ports use local JSON fixtures and configurable in-memory simulators; production requires HTTP clients with circuit breakers and structured telemetry.

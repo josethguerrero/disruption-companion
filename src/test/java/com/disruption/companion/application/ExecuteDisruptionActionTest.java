@@ -36,8 +36,7 @@ class ExecuteDisruptionActionTest {
     private static final Map<String, Airport> AIRPORTS = Map.of(
             "SCL", new Airport("SCL", ZoneId.of("America/Santiago"), "CL"),
             "LIM", new Airport("LIM", ZoneId.of("America/Lima"), "PE"),
-            "MEX", new Airport("MEX", ZoneId.of("America/Mexico_City"), "MX")
-    );
+            "MEX", new Airport("MEX", ZoneId.of("America/Mexico_City"), "MX"));
 
     private static final class MutableClock extends Clock {
         private final AtomicReference<Instant> current;
@@ -67,11 +66,11 @@ class ExecuteDisruptionActionTest {
     }
 
     private static ExecuteDisruptionAction buildAction(ConfigurableRebookingAdapter rebooking,
-                                                       InMemoryHumanCaseAdapter humanCases,
-                                                       InMemoryNotificationAdapter notifications,
-                                                       EligibleOptionsPort optionsPort,
-                                                       Clock clock,
-                                                       RetryPolicy retryPolicy) {
+            InMemoryHumanCaseAdapter humanCases,
+            InMemoryNotificationAdapter notifications,
+            EligibleOptionsPort optionsPort,
+            Clock clock,
+            RetryPolicy retryPolicy) {
         FixtureReadAdapter fixtures = new FixtureReadAdapter();
         ConnectionAnalyzer analyzer = new ConnectionAnalyzer(
                 AIRPORTS, Duration.ofMinutes(60), Duration.ofMinutes(30));
@@ -114,8 +113,8 @@ class ExecuteDisruptionActionTest {
         assertThat(notifications.sentMessages()).hasSize(1);
         PassengerMessage msg = notifications.sentMessages().getFirst();
         assertThat(msg.policyRef()).isEqualTo("POL-DELAY-2026-03");
-        assertThat(msg.body()).containsIgnoringCase("Solicitamos tu cambio");
-        assertThat(msg.body()).doesNotContainIgnoringCase("confirmado");
+        assertThat(msg.body()).containsIgnoringCase("requested your rebooking");
+        assertThat(msg.body()).doesNotContainIgnoringCase("confirmed");
 
         JsonMapper mapper = JsonMapper.builder().build();
         String combinedJson = mapper.writeValueAsString(evidence) + mapper.writeValueAsString(msg);
@@ -154,8 +153,7 @@ class ExecuteDisruptionActionTest {
                 new RebookingResult.UpstreamTimeout("UPSTREAM_TIMEOUT"),
                 new RebookingResult.UpstreamTimeout("UPSTREAM_TIMEOUT"),
                 new RebookingResult.Created("RBK-88231", "PENDING_CONFIRMATION",
-                        Instant.parse("2026-09-15T11:12:00Z"))
-        ));
+                        Instant.parse("2026-09-15T11:12:00Z"))));
         InMemoryHumanCaseAdapter humanCases = new InMemoryHumanCaseAdapter();
         InMemoryNotificationAdapter notifications = new InMemoryNotificationAdapter();
         MutableClock clock = new MutableClock(BASE_NOW);
@@ -183,8 +181,7 @@ class ExecuteDisruptionActionTest {
         ConfigurableRebookingAdapter rebooking = new ConfigurableRebookingAdapter(List.of(
                 new RebookingResult.UpstreamTimeout("UPSTREAM_TIMEOUT"),
                 new RebookingResult.UpstreamTimeout("UPSTREAM_TIMEOUT"),
-                new RebookingResult.UpstreamTimeout("UPSTREAM_TIMEOUT")
-        ));
+                new RebookingResult.UpstreamTimeout("UPSTREAM_TIMEOUT")));
         InMemoryHumanCaseAdapter humanCases = new InMemoryHumanCaseAdapter();
         InMemoryNotificationAdapter notifications = new InMemoryNotificationAdapter();
         MutableClock clock = new MutableClock(BASE_NOW);
@@ -225,8 +222,7 @@ class ExecuteDisruptionActionTest {
         ConfigurableRebookingAdapter rebooking = new ConfigurableRebookingAdapter(List.of(
                 new RebookingResult.UpstreamTimeout("UPSTREAM_TIMEOUT"),
                 new RebookingResult.Created("RBK-88231", "PENDING_CONFIRMATION",
-                        Instant.parse("2026-09-15T11:15:00Z"))
-        ));
+                        Instant.parse("2026-09-15T11:15:00Z"))));
         InMemoryHumanCaseAdapter humanCases = new InMemoryHumanCaseAdapter();
         InMemoryNotificationAdapter notifications = new InMemoryNotificationAdapter();
         // Backoff advances clock by 120s, pushing past the 11:04:35Z TTL
@@ -249,9 +245,9 @@ class ExecuteDisruptionActionTest {
                 "ABC123", 160, "MISSED", "O1", "LA2412", null, null, null, null);
 
         NotificationResult result = notifications.notifyPassenger(
-                new PassengerMessage("ABC123", null, "Solicitamos tu cambio", facts));
+                new PassengerMessage("ABC123", null, "We have requested your rebooking", facts));
 
-        assertThat(result).isEqualTo(new NotificationResult.Rejected("UNVALIDATED_CONTENT", "falta policy_ref"));
+        assertThat(result).isEqualTo(new NotificationResult.Rejected("UNVALIDATED_CONTENT", "missing policy_ref"));
         assertThat(notifications.sentMessages()).isEmpty();
     }
 }

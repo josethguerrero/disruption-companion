@@ -14,7 +14,7 @@ public final class InMemoryNotificationAdapter implements NotificationPort {
     @Override
     public synchronized NotificationResult notifyPassenger(PassengerMessage message) {
         if (message.policyRef() == null || message.policyRef().isBlank()) {
-            return new NotificationResult.Rejected("UNVALIDATED_CONTENT", "falta policy_ref");
+            return new NotificationResult.Rejected("UNVALIDATED_CONTENT", "missing policy_ref");
         }
         sent.add(message);
         String id = sent.size() == 1 ? "NT-9912" : "NT-" + (9911 + sent.size());

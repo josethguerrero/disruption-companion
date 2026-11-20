@@ -192,8 +192,8 @@ public final class ExecuteDisruptionAction {
         }
 
         NotificationResult notification = notifyRebookingRequested(assessment, targetOption, requestId, humanCase);
-        String summary = "Solicitamos tu cambio al vuelo " + targetOption.flightNumber()
-                + " (" + requestId + ", pendiente de confirmación)";
+        String summary = "We have requested your rebooking to flight " + targetOption.flightNumber()
+                + " (" + requestId + ", pending confirmation)";
         return new ActionExecutionResult(
                 bookingId, idempotencyKey, finalStatus, requestId, targetOption.optionId(),
                 attempts, humanCase, notification, summary);
@@ -203,10 +203,10 @@ public final class ExecuteDisruptionAction {
                                                         RebookOption option,
                                                         String requestId,
                                                         HumanCaseReceipt humanCase) {
-        String body = "Solicitamos tu cambio al vuelo " + option.flightNumber()
+        String body = "We have requested your rebooking to flight " + option.flightNumber()
                 + " (" + option.origin() + "->" + option.destination()
                 + ", " + option.date() + " " + option.departure()
-                + "). Referencia de solicitud: " + requestId + " (pendiente de confirmación).";
+                + "). Request reference: " + requestId + " (pending confirmation).";
         PassengerMessage.Facts facts = new PassengerMessage.Facts(
                 assessment.bookingId(),
                 assessment.delayMinutes(),
@@ -222,8 +222,8 @@ public final class ExecuteDisruptionAction {
     }
 
     private NotificationResult notifyEscalated(DisruptionAssessment assessment, HumanCaseReceipt receipt) {
-        String body = "Derivamos tu caso (" + receipt.caseId()
-                + ") a un especialista para revisar tu cambio de vuelo.";
+        String body = "We have escalated your case (" + receipt.caseId()
+                + ") to a specialist to review your flight change.";
         PassengerMessage.Facts facts = new PassengerMessage.Facts(
                 assessment.bookingId(),
                 assessment.delayMinutes(),

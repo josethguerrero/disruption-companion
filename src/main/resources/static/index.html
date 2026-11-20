@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disruption Companion — Interactive Demo</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --panel: #131c31;
+      --panel-alt: #0f172a;
+      --border: #26344f;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-dark: #0284c7;
+      --user-bubble: #0369a1;
+      --bot-bubble: #1e293b;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+      --err: #ef4444;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 14px 22px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    header h1 { margin: 0; font-size: 1.1rem; }
+    header .sub { color: var(--muted); font-size: 0.82rem; }
+    .badges { display: flex; gap: 8px; align-items: center; }
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 600;
+    }
+    .badge.info { background: rgba(56, 189, 248, 0.16); color: var(--accent); }
+    .badge.ok { background: rgba(34, 197, 94, 0.16); color: var(--ok); }
+    .badge.warn { background: rgba(245, 158, 11, 0.16); color: var(--warn); }
+    .badge.err { background: rgba(239, 68, 68, 0.16); color: var(--err); }
+
+    .layout {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 270px 1fr 420px;
+      gap: 0;
+    }
+    @media (max-width: 1100px) {
+      .layout { grid-template-columns: 1fr; height: auto; }
+      body { height: auto; }
+    }
+
+    /* Sidebar */
+    aside {
+      border-right: 1px solid var(--border);
+      background: var(--panel-alt);
+      padding: 16px;
+      overflow-y: auto;
+    }
+    aside h2 {
+      margin: 0 0 12px 0;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+    }
+    .case-btn {
+      width: 100%;
+      text-align: left;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .case-btn:hover { border-color: var(--accent); }
+    .case-btn.active {
+      border-color: var(--accent);
+      background: rgba(56, 189, 248, 0.12);
+    }
+    .case-btn .title { font-weight: 600; font-size: 0.88rem; display: block; }
+    .case-btn .desc { font-size: 0.76rem; color: var(--muted); display: block; margin-top: 3px; }
+
+    /* Chat column */
+    .chat-col {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border-right: 1px solid var(--border);
+    }
+    .chat-header {
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .chat-header .case-title { font-weight: 600; font-size: 0.95rem; }
+    .reset-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.78rem;
+    }
+    .reset-btn:hover { border-color: var(--accent); color: var(--text); }
+
+    .messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .msg {
+      max-width: 84%;
+      padding: 11px 14px;
+      border-radius: 12px;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+    .msg.bot {
+      align-self: flex-start;
+      background: var(--bot-bubble);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 3px;
+    }
+    .msg.user {
+      align-self: flex-end;
+      background: var(--user-bubble);
+      color: #fff;
+      border-bottom-right-radius: 3px;
+    }
+    .msg .sender {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .msg.user .sender { color: rgba(255, 255, 255, 0.75); }
+    .msg ul { margin: 6px 0 0 18px; padding: 0; }
+    .msg .tag {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: rgba(56, 189, 248, 0.16);
+      color: var(--accent);
+    }
+
+    .actions-bar {
+      padding: 14px 18px;
+      border-top: 1px solid var(--border);
+      background: var(--panel);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .action-chip {
+      background: #0b1220;
+      border: 1px solid var(--accent-dark);
+      color: var(--text);
+      padding: 8px 13px;
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.84rem;
+      font-weight: 500;
+      transition: background 0.15s, transform 0.05s;
+    }
+    .action-chip:hover { background: var(--accent-dark); color: #fff; }
+    .action-chip.secondary { border-color: var(--border); color: var(--muted); }
+    .action-chip.secondary:hover { border-color: var(--accent); color: var(--text); background: #16233a; }
+    .done-note { color: var(--ok); font-size: 0.84rem; font-weight: 600; align-self: center; }
+
+    /* Backend trace column */
+    .trace-col {
+      background: var(--panel-alt);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .trace-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      background: var(--panel);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .trace-header h2 {
+      margin: 0;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+    }
+    .trace-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .trace-steps {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .trace-step {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 0.8rem;
+    }
+    .trace-step.ok { border-left-color: var(--ok); }
+    .trace-step.warn { border-left-color: var(--warn); }
+    .trace-step.err { border-left-color: var(--err); }
+    .trace-step .layer {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+      font-weight: 700;
+    }
+    .endpoint-pill {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.75rem;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      padding: 6px 8px;
+      border-radius: 6px;
+      color: var(--accent);
+      word-break: break-all;
+    }
+    pre {
+      margin: 0;
+      background: #070c17;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      overflow: auto;
+      max-height: 300px;
+      font-size: 0.76rem;
+      color: #cbd5e1;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Disruption Companion — Interactive Demo</h1>
+      <div class="sub">Hexagonal Backend · Deterministic Guided Chat (no runtime LLM) · Base clock: 2026-09-15T11:03:00Z</div>
+    </div>
+    <div class="badges">
+      <span class="badge info">Deterministic Flow</span>
+      <span class="badge ok" id="pii-badge">PII Guard: Idle</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside>
+      <h2>Scenarios</h2>
+      <button class="case-btn active" id="nav-base" onclick="selectCase('base')">
+        <span class="title">1. Base Case (ABC123)</span>
+        <span class="desc">Delay 160m, missed connection, R3+R5, rebook O1 or request compensation</span>
+      </button>
+      <button class="case-btn" id="nav-ttl" onclick="selectCase('ttl')">
+        <span class="title">2. Expired Offer TTL (11:08Z)</span>
+        <span class="desc">120s offer expired at 11:04:35Z → no auto-rebook, human review</span>
+      </button>
+      <button class="case-btn" id="nav-409" onclick="selectCase('dup409')">
+        <span class="title">3. 409 Duplicate Request</span>
+        <span class="desc">Passenger retries rebooking → 409 treated as idempotent success</span>
+      </button>
+      <button class="case-btn" id="nav-retry" onclick="selectCase('retry503')">
+        <span class="title">4. 503×2 → 201 Backoff Retry</span>
+        <span class="desc">Upstream timeouts retried with same key ABC123:S1:E-1001</span>
+      </button>
+      <button class="case-btn" id="nav-block" onclick="selectCase('blockO2')">
+        <span class="title">5. 503×3 → Human → Block O2</span>
+        <span class="desc">Lock stays held after escalation; switching to O2 is rejected</span>
+      </button>
+      <button class="case-btn" id="nav-422" onclick="selectCase('reject422')">
+        <span class="title">6. 422 Missing policy_ref</span>
+        <span class="desc">Notification guardrail rejects unvalidated passenger message</span>
+      </button>
+    </aside>
+
+    <section class="chat-col">
+      <div class="chat-header">
+        <span class="case-title" id="chat-title">1. Base Case (ABC123)</span>
+        <button class="reset-btn" onclick="resetCurrentCase()">Restart scenario</button>
+      </div>
+      <div class="messages" id="messages"></div>
+      <div class="actions-bar" id="actions-bar"></div>
+    </section>
+
+    <section class="trace-col">
+      <div class="trace-header">
+        <h2>Backend Trace</h2>
+        <span class="badge info" id="http-badge">Idle</span>
+      </div>
+      <div class="trace-body">
+        <div class="endpoint-pill" id="endpoint-pill">Waiting for passenger action...</div>
+        <ul class="trace-steps" id="trace-steps">
+          <li class="trace-step">
+            <div class="layer">Ready</div>
+            Pick a quick-reply button in the chat to trace each hexagonal layer live.
+          </li>
+        </ul>
+        <div>
+          <div style="font-size: 0.74rem; color: var(--muted); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em;">Raw JSON Payload</div>
+          <pre id="json-output">{}</pre>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const PII_PATTERNS = ["maria.silva@example.com", "+56 9 8765 4321", "12.345.678-9", "María", "Tomás", "Silva"];
+    let currentCase = "base";
+    let caseState = {};
+
+    const CASE_TITLES = {
+      base: "1. Base Case (ABC123) — Live Endpoints",
+      ttl: "2. Expired Offer TTL (11:08:00Z)",
+      dup409: "3. 409 Duplicate Request (Idempotent Success)",
+      retry503: "4. 503×2 → 201 Exponential Backoff Retry",
+      blockO2: "5. 503×3 → Human Case → Switch to O2 Blocked",
+      reject422: "6. 422 Missing policy_ref Guardrail"
+    };
+
+    function selectCase(id) {
+      currentCase = id;
+      document.querySelectorAll(".case-btn").forEach(b => b.classList.remove("active"));
+      const map = { base: "nav-base", ttl: "nav-ttl", dup409: "nav-409", retry503: "nav-retry", blockO2: "nav-block", reject422: "nav-422" };
+      document.getElementById(map[id]).classList.add("active");
+      document.getElementById("chat-title").textContent = CASE_TITLES[id];
+      resetCurrentCase();
+    }
+
+    function resetCurrentCase() {
+      caseState = {};
+      document.getElementById("messages").innerHTML = "";
+      document.getElementById("actions-bar").innerHTML = "";
+      document.getElementById("json-output").textContent = "{}";
+      document.getElementById("endpoint-pill").textContent = "Waiting for passenger action...";
+      setHttpBadge("Idle", "info");
+      setPiiBadge(null);
+      setTrace([{ layer: "Ready", text: "Click a quick-reply button in the chat to run the next step.", kind: "" }]);
+
+      if (currentCase === "base") {
+        addMsg("bot", "Hello! I'm your Disruption Companion.\nEnter your booking code below to check your trip status and available options.");
+        setActions([
+          { input: true, id: "booking-input", value: "ABC123", placeholder: "Booking ID (e.g. ABC123)" },
+          { label: "Check my flight status", onClick: () => runBaseAssessment(false, "Check flight status for " + currentBookingId()) },
+          { label: "Check status & request cash compensation", secondary: true, onClick: () => runBaseAssessment(true, "Check status & request cash compensation for " + currentBookingId()) }
+        ]);
+      } else if (currentCase === "ttl") {
+        addMsg("bot", "Scenario: The passenger checks booking ABC123 at 11:08:00Z, after the 120-second option offer expired at 11:04:35Z.");
+        setActions([
+          { label: "Check my flight at 11:08:00Z", onClick: runExpiredTtl }
+        ]);
+      } else if (currentCase === "dup409") {
+        addMsg("bot", "Scenario: A rebooking request for ABC123:S1:E-1001 already exists upstream. The passenger clicks again to request the change.");
+        setActions([
+          { label: "Request rebooking to LA2412 (O1)", onClick: runDup409 }
+        ]);
+      } else if (currentCase === "retry503") {
+        addMsg("bot", "Scenario: The upstream rebooking API times out (503) twice before succeeding (201) on attempt 3.");
+        setActions([
+          { label: "Request rebooking to LA2412 (O1)", onClick: runRetry503 }
+        ]);
+      } else if (currentCase === "blockO2") {
+        addMsg("bot", "Scenario: Upstream returns 503 on all 3 attempts. Because the outcome is indeterminate, the idempotency lock must stay held even after human escalation.");
+        setActions([
+          { label: "Step 1: Request rebooking to LA2412 (O1)", onClick: runBlockO2Step1 }
+        ]);
+      } else if (currentCase === "reject422") {
+        addMsg("bot", "Scenario: Attempt to send a passenger notification without a validated policy_ref.");
+        setActions([
+          { label: "Send unvalidated notification (no policy_ref)", onClick: runReject422 }
+        ]);
+      }
+    }
+
+    async function callApi(method, url) {
+      document.getElementById("endpoint-pill").textContent = `${method} ${url}`;
+      setHttpBadge("Calling...", "warn");
+      const res = await fetch(url, { method });
+      const data = await res.json();
+      const raw = JSON.stringify(data, null, 2);
+      document.getElementById("json-output").textContent = raw;
+      setHttpBadge(`HTTP ${res.status}`, res.ok ? "ok" : "err");
+      setPiiBadge(raw);
+      return data;
+    }
+
+    function currentBookingId() {
+      const inp = document.getElementById("booking-input");
+      const val = (inp ? inp.value : caseState.bookingId || "ABC123").trim().toUpperCase();
+      caseState.bookingId = val || "ABC123";
+      return caseState.bookingId;
+    }
+
+    async function runBaseAssessment(comp, userText) {
+      const bookingId = currentBookingId();
+      addMsg("user", userText);
+      const data = await callApi("GET", `/api/bookings/${encodeURIComponent(bookingId)}/assessment?compensationRequested=${comp}`);
+      caseState.assessment = data;
+      caseState.comp = comp;
+
+      const s1Gate = (data.resolutions || []).find(r => r.segmentId === "S1" && r.field === "GATE")?.winner?.gate || "N/A";
+      const conn = data.connections?.[0];
+      const rec = data.recommended;
+
+      let reply = `Your first flight LA500 (SCL → LIM) is delayed by ${data.delayMinutes} minutes (new departure 17:10 local, gate ${s1Gate}).\n`
+        + `Because estimated arrival in Lima is 20:35, you will miss your connection LA2410 to MEX (19:05, slack ${conn.slackMinutes} min).\n\n`
+        + `Eligible option under policy ${data.policyVersion} (no fee):\n`
+        + `• ${rec.flightNumber} (${rec.origin} → ${rec.destination}) on ${rec.date} at ${rec.departure} — ${rec.seatsAvailable} seats available, $0 fare difference.\n\n`
+        + `Human review flags:\n` + data.humanReview.map(h => `• ${h}`).join("\n");
+
+      addMsg("bot", reply, "Read-only assessment · No write executed yet");
+
+      setTrace([
+        { layer: "1. TripContextPort", text: "Loaded ABC123 (2 passengers: adult + child age 7). Flagged PARTIAL context: missing change_penalty_amount.", kind: "warn" },
+        { layer: "2. SourceReconciler", text: "Discarded E-1012 (LEGACY_MIRROR degraded). Confirmed E-1001 (OPS_CORE, +160m) and E-1007 (AIRPORT_FEED, gate 24). Stale: false.", kind: "ok" },
+        { layer: "3. ConnectionAnalyzer", text: "SCL (UTC-3) → LIM (UTC-5): est. arrival 20:35 vs S2 19:05 → slack -90 min → MISSED. International: true.", kind: "warn" },
+        { layer: "4. RuleEvaluator", text: `Evaluated ${data.policyVersion}: R3 (REBOOK_NO_FEE, auto) & R5 (minor, human)${comp ? " & R4 (cash comp, human)" : ""} apply. R1/R2 do not apply (160 < 180).`, kind: "ok" },
+        { layer: "5. OptionValidator", text: "TTL active (11:03:00Z < 11:04:35Z). O1 valid; O2 rejected (1 seat for 2 pax + 180,000 CLP); O3 rejected (non-refundable + POL-REFUND not consulted).", kind: "ok" },
+        { layer: "6. EvaluateDisruption", text: `autoRebook=${data.autoRebook}, recommended=${rec.flightNumber}, humanReview=${data.humanReview.length} item(s). Zero PII in DTO.`, kind: "ok" }
+      ]);
+
+      const nextActions = [
+        { label: "Request rebooking to LA2412 (O1)", onClick: () => runBaseRebook(comp) },
+        { label: "Why not LA2450 tonight (O2) or a refund (O3)?", secondary: true, onClick: explainRejectedOptions }
+      ];
+      if (!comp) {
+        nextActions.push({ label: "I also want cash compensation (R4)", secondary: true, onClick: () => runBaseAssessment(true, "I also want cash compensation") });
+      }
+      setActions(nextActions);
+    }
+
+    function explainRejectedOptions() {
+      addMsg("user", "Why not LA2450 tonight (O2) or a refund (O3)?");
+      const opts = caseState.assessment?.options || [];
+      const o2 = opts.find(o => o.option.optionId === "O2");
+      const o3 = opts.find(o => o.option.optionId === "O3");
+      const text = `Both alternatives were filtered out by policy and inventory rules:\n`
+        + `• O2 (LA2450 tonight): ${o2.reasons.join("; ")}.\n`
+        + `• O3 (Refund): ${o3.reasons.join("; ")}.\n\n`
+        + `Would you like me to request LA2412 (O1) for both passengers?`;
+      addMsg("bot", text, "Grounded strictly on OptionValidator verdicts");
+      setTrace([
+        { layer: "OptionValidator", text: "Explained deterministic rejection reasons directly from OptionVerdict.reasons without exposing internal confidence labels.", kind: "ok" }
+      ]);
+      setActions([
+        { label: "Yes, request rebooking to LA2412 (O1)", onClick: () => runBaseRebook(caseState.comp) }
+      ]);
+    }
+
+    async function runBaseRebook(comp) {
+      const bookingId = caseState.bookingId || "ABC123";
+      addMsg("user", "Request rebooking to LA2412 (O1)");
+      const data = await callApi("POST", `/api/bookings/${encodeURIComponent(bookingId)}/actions/rebook?compensationRequested=${!!comp}`);
+
+      const reply = `${data.message}.\n\n`
+        + `• Idempotency key: ${data.idempotencyKey}\n`
+        + `• Rebooking reference: ${data.requestId} (PENDING_CONFIRMATION — not yet confirmed)\n`
+        + `• Priority human case opened: ${data.humanCase.caseId} (queue ${data.humanCase.queue}, SLA ${data.humanCase.slaMinutes} min) for minor handling & LIM overnight stay.\n`
+        + `• Notification status: ${data.notification.status} (${data.notification.notificationId}).`;
+      addMsg("bot", reply, "Write completed · Never claims 'confirmed' on 201");
+
+      setTrace([
+        { layer: "1. IdempotencyKey", text: `Backend derived ${data.idempotencyKey} from disruption (bookingId:segmentId:eventId), not from optionId.`, kind: "ok" },
+        { layer: "2. RebookingPort", text: `HTTP 201 PENDING_CONFIRMATION → requestId=${data.requestId} in ${data.attempts} attempt(s).`, kind: "ok" },
+        { layer: "3. HumanCasePort", text: `Opened ${data.humanCase.caseId} in parallel with typed Evidence (includes requestId=${data.requestId}, zero PII).`, kind: "warn" },
+        { layer: "4. NotificationPort", text: `Validated policy_ref=POL-DELAY-2026-03 → HTTP 202 ${data.notification.status}. Copy says "requested", never "confirmed".`, kind: "ok" }
+      ]);
+
+      setActions([], "Case completed. Restart or pick another scenario on the left.");
+    }
+
+    async function runExpiredTtl() {
+      addMsg("user", "Check my flight at 11:08:00Z");
+      const data = await callApi("GET", "/api/demo/scenarios/expired-ttl");
+
+      const reply = `Your flight LA500 is delayed 160 min and connection LA2410 will be missed.\n`
+        + `However, the candidate rebooking offer expired at 11:04:35Z (120s TTL), so no automatic rebooking option can be offered.\n\n`
+        + `Escalated to human review:\n` + data.humanReview.map(h => `• ${h}`).join("\n");
+      addMsg("bot", reply, "Fail-closed · autoRebook=false");
+
+      setTrace([
+        { layer: "Clock", text: "Simulated evaluation clock at 2026-09-15T11:08:00Z.", kind: "warn" },
+        { layer: "OptionValidator", text: "offer.isExpired(now) == true (11:08:00Z >= 11:04:35Z). All 3 options invalidated.", kind: "err" },
+        { layer: "EvaluateDisruption", text: "recommended=null, autoRebook=false. Added 'eligible for REBOOK_NO_FEE but no valid option' to humanReview.", kind: "warn" }
+      ]);
+
+      setActions([], "Case completed. Restart or pick another scenario.");
+    }
+
+    async function runDup409() {
+      addMsg("user", "Request rebooking to LA2412 (O1)");
+      const data = await callApi("POST", "/api/demo/scenarios/duplicate-409");
+
+      const reply = `${data.message}.\n`
+        + `Your request was already registered upstream (reference ${data.requestId}), so no duplicate booking was created.`;
+      addMsg("bot", reply, `Status: ${data.status} · 409 treated as success`);
+
+      setTrace([
+        { layer: "1. IdempotencyKey", text: `Derived ${data.idempotencyKey}.`, kind: "ok" },
+        { layer: "2. RebookingPort", text: "Upstream returned HTTP 409 DUPLICATE_REQUEST with existing requestId=RBK-88231.", kind: "warn" },
+        { layer: "3. ExecuteDisruptionAction", text: "Treated 409 as idempotent success (ALREADY_REQUESTED), released any pending lock, opened human case & notified passenger.", kind: "ok" }
+      ]);
+
+      setActions([], "Case completed. Restart or pick another scenario.");
+    }
+
+    async function runRetry503() {
+      addMsg("user", "Request rebooking to LA2412 (O1)");
+      const data = await callApi("POST", "/api/demo/scenarios/retry-503-then-201");
+      const r = data.result;
+
+      const reply = `${r.message}.\n`
+        + `We experienced brief upstream timeouts and safely retried using the same idempotency key (${r.idempotencyKey}).\n`
+        + `• Reference: ${r.requestId} (PENDING_CONFIRMATION) · Attempts: ${r.attempts}`;
+      addMsg("bot", reply, `Succeeded on attempt ${r.attempts} with backoff [${data.backoffsSeconds.join("s, ")}s]`);
+
+      setTrace([
+        { layer: "Attempt 1", text: `POST with key ${data.idempotencyKeysUsed[0]} → HTTP 503 UPSTREAM_TIMEOUT. Marked PENDING_UNKNOWN, backoff ${data.backoffsSeconds[0]}s.`, kind: "err" },
+        { layer: "Attempt 2", text: `POST with SAME key ${data.idempotencyKeysUsed[1]} → HTTP 503 UPSTREAM_TIMEOUT. Backoff ${data.backoffsSeconds[1]}s.`, kind: "err" },
+        { layer: "Attempt 3", text: `POST with SAME key ${data.idempotencyKeysUsed[2]} → HTTP 201 Created (${r.requestId}). Lock released.`, kind: "ok" },
+        { layer: "HumanCase & Notify", text: `Opened ${r.humanCase.caseId} with requestId=${r.requestId} and queued notification ${r.notification.notificationId}.`, kind: "ok" }
+      ]);
+
+      setActions([], "Case completed. Restart or pick another scenario.");
+    }
+
+    async function runBlockO2Step1() {
+      addMsg("user", "Step 1: Request rebooking to LA2412 (O1)");
+      const data = await callApi("POST", "/api/demo/scenarios/timeout-503-blocks-o2");
+      caseState.blockData = data;
+      const first = data.firstAttemptO1;
+
+      const reply = `We could not confirm whether the upstream system registered your request after ${first.attempts} timeouts (503).\n`
+        + `We escalated your case to a human specialist (${first.humanCase.caseId}, SLA ${first.humanCase.slaMinutes} min) and locked key ${first.idempotencyKey} to prevent duplicate bookings.`;
+      addMsg("bot", reply, "Status: ESCALATED_TO_HUMAN · Lock kept active");
+
+      setTrace([
+        { layer: "Attempts 1–3", text: `3× HTTP 503 UPSTREAM_TIMEOUT with key ${first.idempotencyKey}.`, kind: "err" },
+        { layer: "HumanCasePort", text: `Escalated to ${first.humanCase.caseId} (requestId=null, attempts=3, zero PII).`, kind: "warn" },
+        { layer: "Idempotency Lock", text: "Key ABC123:S1:E-1001 remains in PENDING_UNKNOWN — NOT released on escalation.", kind: "warn" }
+      ]);
+
+      setActions([
+        { label: "Step 2: Try switching to LA2450 (O2) instead", onClick: runBlockO2Step2 }
+      ]);
+    }
+
+    function runBlockO2Step2() {
+      addMsg("user", "Step 2: Try switching to LA2450 (O2) instead");
+      const second = caseState.blockData.secondAttemptO2;
+      const totalCalls = caseState.blockData.totalRebookingCalls;
+
+      const reply = `Request blocked: ${second.message}.\n`
+        + `Because the earlier timeout for O1 may have succeeded upstream, we will not submit a second option until a specialist resolves case ${caseState.blockData.firstAttemptO1.humanCase.caseId}.`;
+      addMsg("bot", reply, `Status: ${second.status} · 0 extra upstream calls`);
+
+      setTrace([
+        { layer: "Lock Check", text: `Detected unresolved PENDING_UNKNOWN lock on ${second.idempotencyKey} for option O1.`, kind: "err" },
+        { layer: "ExecuteDisruptionAction", text: `Rejected option O2 immediately (${second.status}). Total upstream rebooking calls remained ${totalCalls} (no double booking).`, kind: "ok" }
+      ]);
+
+      setActions([], "Case completed. Restart or pick another scenario.");
+    }
+
+    async function runReject422() {
+      addMsg("user", "Send unvalidated notification (no policy_ref)");
+      const data = await callApi("POST", "/api/demo/scenarios/missing-policy-ref-422");
+
+      const reply = `Notification blocked by guardrail: ${data.error} (${data.detail}).\n`
+        + `No message is ever sent to the passenger without a verified policy_ref.`;
+      addMsg("bot", reply, "Guardrail HTTP 422 enforced");
+
+      setTrace([
+        { layer: "NotificationPort", text: `InMemoryNotificationAdapter checked policyRef == null → returned Rejected(${data.error}, "${data.detail}").`, kind: "err" },
+        { layer: "Result", text: "0 messages queued; passenger protected from unvalidated content.", kind: "ok" }
+      ]);
+
+      setActions([], "Case completed. Restart or pick another scenario.");
+    }
+
+    function addMsg(role, text, tag) {
+      const box = document.getElementById("messages");
+      const div = document.createElement("div");
+      div.className = `msg ${role}`;
+      const sender = role === "bot" ? "Disruption Companion" : "Passenger (You)";
+      div.innerHTML = `<span class="sender">${sender}</span>${escapeHtml(text)}`
+        + (tag ? `<div><span class="tag">${escapeHtml(tag)}</span></div>` : "");
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function setActions(items, doneText) {
+      const bar = document.getElementById("actions-bar");
+      bar.innerHTML = "";
+      if (doneText) {
+        const span = document.createElement("span");
+        span.className = "done-note";
+        span.textContent = doneText;
+        bar.appendChild(span);
+        return;
+      }
+      items.forEach(it => {
+        if (it.input) {
+          const input = document.createElement("input");
+          input.type = "text";
+          input.id = it.id;
+          input.value = it.value || "";
+          input.placeholder = it.placeholder || "";
+          input.style.cssText = "background:#0b1220;border:1px solid #26344f;color:#e2e8f0;padding:7px 10px;border-radius:999px;font-size:0.84rem;width:130px;text-transform:uppercase;";
+          bar.appendChild(input);
+          return;
+        }
+        const btn = document.createElement("button");
+        btn.className = "action-chip" + (it.secondary ? " secondary" : "");
+        btn.textContent = it.label;
+        btn.onclick = it.onClick;
+        bar.appendChild(btn);
+      });
+    }
+
+    function setTrace(steps) {
+      const ul = document.getElementById("trace-steps");
+      ul.innerHTML = steps.map(s =>
+        `<li class="trace-step ${s.kind || ""}"><div class="layer">${escapeHtml(s.layer)}</div>${escapeHtml(s.text)}</li>`
+      ).join("");
+    }
+
+    function setHttpBadge(text, kind) {
+      const el = document.getElementById("http-badge");
+      el.className = `badge ${kind}`;
+      el.textContent = text;
+    }
+
+    function setPiiBadge(rawJson) {
+      const el = document.getElementById("pii-badge");
+      if (rawJson === null) {
+        el.className = "badge ok";
+        el.textContent = "PII Guard: Idle";
+        return;
+      }
+      const leaked = PII_PATTERNS.filter(p => rawJson.includes(p));
+      if (leaked.length === 0) {
+        el.className = "badge ok";
+        el.textContent = "PII Guard: 0 leaks";
+      } else {
+        el.className = "badge err";
+        el.textContent = "PII LEAK: " + leaked.join(", ");
+      }
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+    }
+
+    resetCurrentCase();
+  </script>
+</body>
+</html>
