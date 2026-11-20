@@ -1,7 +1,15 @@
 package com.disruption.companion.config;
 
+import com.disruption.companion.adapters.fixture.ConfigurableRebookingAdapter;
 import com.disruption.companion.adapters.fixture.FixtureReadAdapter;
+import com.disruption.companion.adapters.fixture.InMemoryHumanCaseAdapter;
+import com.disruption.companion.adapters.fixture.InMemoryNotificationAdapter;
 import com.disruption.companion.application.EvaluateDisruption;
+import com.disruption.companion.application.ExecuteDisruptionAction;
+import com.disruption.companion.application.RetryPolicy;
+import com.disruption.companion.application.port.HumanCasePort;
+import com.disruption.companion.application.port.NotificationPort;
+import com.disruption.companion.application.port.RebookingPort;
 import com.disruption.companion.domain.Airport;
 import com.disruption.companion.domain.ConnectionAnalyzer;
 import com.disruption.companion.domain.SourceReconciler;
@@ -47,5 +55,33 @@ public class CompanionConfig {
         return new EvaluateDisruption(
                 fixtures, fixtures, fixtures, fixtures,
                 SourceReconciler.withDefaults(), analyzer, clock);
+    }
+
+    @Bean
+    RebookingPort rebookingPort() {
+        return new ConfigurableRebookingAdapter();
+    }
+
+    @Bean
+    HumanCasePort humanCasePort() {
+        return new InMemoryHumanCaseAdapter();
+    }
+
+    @Bean
+    NotificationPort notificationPort() {
+        return new InMemoryNotificationAdapter();
+    }
+
+    @Bean
+    ExecuteDisruptionAction executeDisruptionAction(EvaluateDisruption evaluateDisruption,
+                                                    FixtureReadAdapter fixtures,
+                                                    RebookingPort rebookingPort,
+                                                    HumanCasePort humanCasePort,
+                                                    NotificationPort notificationPort,
+                                                    Clock clock) {
+        return new ExecuteDisruptionAction(
+                evaluateDisruption, fixtures, fixtures,
+                rebookingPort, humanCasePort, notificationPort,
+                clock, RetryPolicy.withDefaults());
     }
 }
